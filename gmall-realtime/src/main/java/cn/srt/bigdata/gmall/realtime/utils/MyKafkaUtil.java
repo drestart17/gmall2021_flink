@@ -2,6 +2,8 @@ package cn.srt.bigdata.gmall.realtime.utils;
 
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer011;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 
 import java.util.Properties;
@@ -12,7 +14,7 @@ import java.util.Properties;
 public class MyKafkaUtil {
 
     //1.定义kafka的bootstrap-server
-    private static String bootStrapServer = "bigdata-test01:9092,bigdata-test02:9092,bigdata-test03:9092";
+    private static final String bootStrapServer = "bigdata-test01:9092,bigdata-test02:9092,bigdata-test03:9092";
 
     /**
      * flink消费kafka主题
@@ -31,5 +33,17 @@ public class MyKafkaUtil {
 
         FlinkKafkaConsumer<String> flinkKafkaConsumer = new FlinkKafkaConsumer<>(topic, new SimpleStringSchema(), properties);
         return flinkKafkaConsumer;
+    }
+
+    /**
+     * flink生产者发往某个topic主题
+     * @param topic
+     * @return
+     */
+    public static FlinkKafkaProducer getKafkaSink(String topic) {
+
+        FlinkKafkaProducer flinkKafkaProducer = new FlinkKafkaProducer(bootStrapServer, topic, new SimpleStringSchema());
+
+        return  flinkKafkaProducer;
     }
 }

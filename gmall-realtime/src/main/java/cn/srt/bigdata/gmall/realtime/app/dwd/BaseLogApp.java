@@ -17,6 +17,7 @@ import org.apache.flink.streaming.api.datastream.KeyedStream;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 
@@ -24,6 +25,14 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 public class BaseLogApp {
+
+    //定义topic
+    //start启动日志发往dwd_start_log
+    private static final String TOPIC_START = "dwd_start_log";
+    //page页面日志发往dwd_page_log
+    private static final String TOPIC_PAGE = "dwd_page_log";
+    //display曝光日志发往dwd_display_log
+    private static final String TOPIC_DISPLAY = "dwd_display_log";
 
     //1.创建主程序
     public static void main(String[] args) throws Exception {
@@ -146,18 +155,18 @@ public class BaseLogApp {
                         //7.2.1 获取数据中的启动相关字段
                         JSONObject startJson = value.getJSONObject("start");
                         //7.2.2 将json转换成string
-                        String startLog = startJson.toString();
+                        String valueString = value.toString();
                         //7.2.3 如果startJson不为空，则将start启动日志放到startTag中
                         if (startJson != null && startJson.size() > 0) {
 
-                            ctx.output(startTag, startLog);
+                            ctx.output(startTag, valueString);
                         } else {
                             //如果是非启动日志，则为页面日志或者曝光日志(都包含页面信息)
-                            System.out.println("pageString:" + startLog);
+//                            System.out.println("pageString:" + valueString);
                             //将页面数据输出到主流
-                            out.collect(startLog);
+                            out.collect(valueString);
                             //如果是曝光日志且不为空，则将曝光数据输出到侧输出流
-                            JSONArray displayArray = value.getJSONArray("display");
+                            JSONArray displayArray = value.getJSONArray("displays");
                             if (displayArray != null && displayArray.size() > 0) {
                                 for (int i = 0; i < displayArray.size(); i++) {
                                     JSONObject displayJson = displayArray.getJSONObject(i);
@@ -174,18 +183,31 @@ public class BaseLogApp {
                 }
         );
 
+        //7.3获取侧输出流
         DataStream<String> startDStream = pageDS.getSideOutput(startTag);
         DataStream<String> displayDStream = pageDS.getSideOutput(displayTag);
 
 
+        //TODO 8.将不同的日志发送到kafka不同的topic主题中
+        //8.1 调用工具类生成FlinkKafkaProducer对象
+        FlinkKafkaProducer startSink = MyKafkaUtil.getKafkaSink(TOPIC_START);
+        FlinkKafkaProducer pageSink = MyKafkaUtil.getKafkaSink(TOPIC_PAGE);
+        FlinkKafkaProducer displaySink = MyKafkaUtil.getKafkaSink(TOPIC_DISPLAY);
+        //8.2输出到各自的topic中去
+        startDStream.addSink(startSink);
+        pageDS.addSink(pageSink);
+        displayDStream.addSink(displaySink);
 
-        //打印
+
+
+
+        //TODO 打印
         pageDS.print("page");
         startDStream.print("start");
         displayDStream.print("display");
 
 
-        //执行
+        //TODO final 执行
         env.execute("dwd_base_log Job");
     }
 }
