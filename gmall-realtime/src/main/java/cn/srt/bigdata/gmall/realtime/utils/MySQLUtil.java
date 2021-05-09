@@ -1,11 +1,13 @@
 package cn.srt.bigdata.gmall.realtime.utils;
 
+import cn.srt.bigdata.gmall.realtime.bean.TableProcess;
 import com.google.common.base.CaseFormat;
 import org.apache.commons.beanutils.BeanUtils;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+
 
 public class MySQLUtil {
 
@@ -78,4 +80,13 @@ public class MySQLUtil {
             }
         }
     }
+
+    //测试
+//    public static void main(String[] args) {
+//        String sql = "select * from table_process";
+//        List<TableProcess> tableProcessList = queryList(sql, TableProcess.class, true);
+//        for (TableProcess tableProcess : tableProcessList) {
+//            System.out.println(tableProcess);
+//        }
+//    }
 }
