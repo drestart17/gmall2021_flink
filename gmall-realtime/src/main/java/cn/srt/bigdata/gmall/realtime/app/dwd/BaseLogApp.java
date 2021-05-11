@@ -1,5 +1,6 @@
 package cn.srt.bigdata.gmall.realtime.app.dwd;
 
+import cn.srt.bigdata.gmall.realtime.common.FlinkEnv;
 import cn.srt.bigdata.gmall.realtime.utils.MyKafkaUtil;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
@@ -39,19 +40,7 @@ public class BaseLogApp {
 
 
         //TODO 1.创建流式执行环境
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment().createLocalEnvironmentWithWebUI(new Configuration());
-        //1.2设置并行度 与kafka分区数保持一致
-        env.setParallelism(4);
-        //1.3设置checkpoint参数 每10s做一次ck,ck的语义的精准一次性
-        env.enableCheckpointing(10000, CheckpointingMode.EXACTLY_ONCE);
-        //1.4设置ck的过期时间：ck必须在1分钟内完成，否则会被抛弃
-        env.getCheckpointConfig().setCheckpointTimeout(60000);
-        //1.5设置状态后端
-        env.setStateBackend(new FsStateBackend("hdfs://bigdata-test01:9820/flink/checkpoint"));
-        //1.6设置重启策略
-        env.setRestartStrategy(RestartStrategies.fixedDelayRestart(2,60000));
-        //1.7设置用户权限
-        System.setProperty("HADOOP_USER_NAME","root");
+        StreamExecutionEnvironment env = FlinkEnv.createStreamEnv();
 
         //TODO 2.指定topic
         String topic = "ods_base_log";

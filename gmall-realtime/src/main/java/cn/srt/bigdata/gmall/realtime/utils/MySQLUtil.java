@@ -12,7 +12,7 @@ import java.util.List;
 public class MySQLUtil {
 
 
-    //查询数据表
+    //从mysql中查询数据表
     public static<T> List<T> queryList(String sql,Class<T> clazz,boolean underScoreToCamel) {
 
         Connection conn = null;
@@ -89,4 +89,46 @@ public class MySQLUtil {
 //            System.out.println(tableProcess);
 //        }
 //    }
+
+//    //通过代理查询clickhouse
+//    public static void main(String[] args) {
+//
+//        Connection conn = null;
+//        PreparedStatement ps = null;
+//        ResultSet rs = null;
+//
+//        try {
+//            Class.forName("ru.yandex.clickhouse.ClickHouseDriver");
+//            conn = DriverManager.getConnection("jdbc:clickhouse://bigdata-test02:9090/ads?socket_timeout=300000","service-user","123456");
+//            ps = conn.prepareStatement("select * from ads.live_watch_realtime_video_detail_count limit 10");
+//            ResultSet resultSet = ps.executeQuery();
+//            System.out.println(resultSet);
+//
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }finally {
+//            if(rs != null) {
+//                try {
+//                    rs.close();
+//                } catch (SQLException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//            if(ps != null) {
+//                try {
+//                    ps.close();
+//                } catch (SQLException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//            if(conn != null) {
+//                try {
+//                    conn.close();
+//                } catch (SQLException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
+//
+
 }
