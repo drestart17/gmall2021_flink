@@ -2,6 +2,7 @@ package cn.srt.bigdata.gmall.realtime.app.function;
 
 import cn.srt.bigdata.gmall.realtime.bean.TableProcess;
 import cn.srt.bigdata.gmall.realtime.common.GmallConfig;
+import cn.srt.bigdata.gmall.realtime.utils.MySQLUtil;
 import com.alibaba.fastjson.JSONObject;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
@@ -10,10 +11,7 @@ import org.apache.flink.util.OutputTag;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class TableProcessFunction extends ProcessFunction {
 
@@ -25,7 +23,7 @@ public class TableProcessFunction extends ProcessFunction {
         this.outputTag = outputTag;
     }
 
-    //TODO 3.用于在内存中存储表配置对象(表名，表配置信息）
+    //TODO 3.用于在内存中存储表配置对象(表名+操作类型，表配置信息）
     private Map<String, TableProcess> tableProcessMap = new HashMap<>();
     //表示内存中已经存在的HBase表
     private Set<String> existsTables = new HashSet<>();
@@ -41,6 +39,8 @@ public class TableProcessFunction extends ProcessFunction {
         Class.forName("org.apache.phoenix.jdbc.PhoenixDriver");
         //4.2 创建连接
         conn = DriverManager.getConnection(GmallConfig.PHOENIX_SERVER);
+        //4.3 创建Phoenix连接后初始化配置表信息
+        initTableProcessMap();
     }
 
     @Override
@@ -51,5 +51,44 @@ public class TableProcessFunction extends ProcessFunction {
     @Override
     public void close() throws Exception {
         super.close();
+    }
+
+    /**
+     * 初始化TableProcess配置表信息
+     */
+    private void initTableProcessMap() {
+
+        System.out.println("更新配置的处理信息...");
+
+        //1.查询配置表数据
+        List<TableProcess> tableProcessList = MySQLUtil.queryList("select * from table_process", TableProcess.class, true);
+
+        //2.遍历配置表数据
+        for (TableProcess tableProcess : tableProcessList) {
+
+            //2.1获取来源表
+            String sourceTable = tableProcess.getSourceTable();
+            //2.2获取操作类型
+            String operateType = tableProcess.getOperateType();
+            //2.3获取结果表表名
+            String sinkTable = tableProcess.getSinkTable();
+            //2.4获取sink类型
+            String sinkType = tableProcess.getSinkType();
+            //2.5拼接字段创建主键
+            String key = sourceTable + ":" + operateType;
+            //2.6将结果数据存入结果集合
+            tableProcessMap.put(key, tableProcess);
+
+            //2.7如果是向hbase中保存的表，则需要先检验下内存中是否存在这张表，如果不存在需要建表
+            if("insert".equals(operateType) && "hbase".equals(sinkType)) {
+                //将表往set中放，如果不存在，则true -->建表
+                boolean notExist = existsTables.add(sourceTable);
+                if(notExist) {
+//                    checkTable()
+                }
+            }
+        }
+
+
     }
 }
