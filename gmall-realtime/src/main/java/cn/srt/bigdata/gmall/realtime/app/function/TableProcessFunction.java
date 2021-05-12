@@ -81,14 +81,57 @@ public class TableProcessFunction extends ProcessFunction {
 
             //2.7如果是向hbase中保存的表，则需要先检验下内存中是否存在这张表，如果不存在需要建表
             if("insert".equals(operateType) && "hbase".equals(sinkType)) {
-                //将表往set中放，如果不存在，则true -->建表
+                //将表往set中放，如果能放入则说明原先不存在，则true -->建表
                 boolean notExist = existsTables.add(sourceTable);
+                //如果表信息数据不在内存中，则需要在Phoenix中建表
                 if(notExist) {
-//                    checkTable()
+                    checkTable(sinkTable,tableProcess.getSinkColumns(),tableProcess.getSinkPk(),tableProcess.getSinkExtend());
                 }
             }
         }
+        if(tableProcessMap==null || tableProcessMap.size()==0) {
+            throw new RuntimeException("缺少处理信息");
+        }
 
 
+    }
+
+    /**
+     * 如果Mysql配置表中配置了数据，该方法用于检查Hbase中是否创建过表，如果没有则需要通过phoenix创建表
+     * @param sinkTable
+     * @param sinkColumns
+     * @param sinkPk
+     * @param sinkExtend
+     */
+    private void checkTable(String sinkTable, String sinkColumns, String sinkPk, String sinkExtend) {
+
+        if(sinkPk == null) {
+            sinkPk = "id";
+        }
+        if(sinkExtend == null){
+            sinkExtend = "";
+        }
+
+        //创建字符串拼接对象，用于拼接建表语句的sql
+        StringBuilder createSql = new StringBuilder("create table if not exists " +
+                GmallConfig.HBASE_SCHEMA + "." + sinkTable + "(");
+
+        //将列做切分
+        String[] splitColumns = sinkColumns.split(",");
+        for (int i = 0; i < splitColumns.length; i++) {
+
+            //取出每个属性来
+            String filed = splitColumns[i];
+            if(sinkPk.equals(filed)) {
+                createSql.append(filed).append("varchar primary key");
+            }else {
+                createSql.append("info.").append(filed).append("varchar");
+            }
+            if(i < filed.length() -1) {
+                createSql.append(",");
+            }
+        }
+        createSql.append(")");
+        createSql.append(sinkExtend);
     }
 }
